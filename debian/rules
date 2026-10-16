@@ -1,0 +1,62 @@
+#!/usr/bin/make -f
+#
+# debian/rules — package the desktop this release pins.
+#
+# dh does none of the building itself: every component is configured, built and
+# installed by scripts/build.sh, the same driver `make install` uses. dh only
+# takes the staged tree under debian/tmp and turns it into packages. There is no
+# version here and no component list here — the versions are the submodule pins
+# and the component list is components.conf.
+
+export DH_VERBOSE = 1
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+PREFIX    = /usr
+MULTIARCH = $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+BUILD_SH  = scripts/build.sh --prefix $(PREFIX) --destdir $(CURDIR)/debian/tmp --libdir lib/$(MULTIARCH)
+
+# dpkg-buildpackage reads debian/changelog before it runs any rule. The
+# changelog is a build artifact — `make deb` writes it from the checked-out tag
+# — so generate one from git when it is absent, and a direct dpkg-buildpackage
+# still works.
+ifeq (,$(wildcard debian/changelog))
+$(shell scripts/gen-changelog.sh > debian/changelog)
+endif
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	@echo "dh: configuration is done by scripts/build.sh"
+
+override_dh_auto_build:
+	$(BUILD_SH)
+
+override_dh_auto_test:
+	@echo "dh: component tests are the components' own; nothing to run here"
+
+override_dh_auto_install:
+	@echo "dh: scripts/build.sh already staged the desktop under debian/tmp"
+
+# Split by what was installed, not by a pattern that could go stale. A shared
+# library is runtime whether or not its component versioned it:
+#
+#   runtime: the payload (foo.so, foo.so.N, foo.so.N.M), the SONAME link
+#            (foo.so.N), and everything a program or the desktop owns
+#            (usr/bin, usr/sbin, usr/libexec, usr/share, etc)
+#   dev:     the linker-name link (foo.so, a symlink) and everything that is not
+#            a library — headers, CMake package configs, pkg-config files
+override_dh_install:
+	cd debian/tmp && find . -type f | sed 's|^\./||' | sort > $(CURDIR)/debian/agora-files
+	cd debian/tmp && find . -type l | sed 's|^\./||' | sort > $(CURDIR)/debian/agora-links
+	runtime='^(usr/(bin|sbin|libexec|share)/|etc/)'; \
+	payload='\.so(\.[0-9][^/]*)?$$'; \
+	soname='\.so\.[0-9][^/]*$$'; \
+	grep -E  "$$runtime|$$payload" $(CURDIR)/debian/agora-files      >  $(CURDIR)/debian/agora.install     || true; \
+	grep -E  "$$runtime|$$soname"  $(CURDIR)/debian/agora-links     >> $(CURDIR)/debian/agora.install     || true; \
+	grep -vE "$$runtime|$$payload" $(CURDIR)/debian/agora-files     >  $(CURDIR)/debian/agora-dev.install || true; \
+	grep -vE "$$runtime|$$soname"  $(CURDIR)/debian/agora-links     >> $(CURDIR)/debian/agora-dev.install || true
+	dh_install
+
+override_dh_auto_clean:
+	scripts/build.sh --clean

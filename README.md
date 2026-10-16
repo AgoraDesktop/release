@@ -64,9 +64,47 @@ follow.
 
 ## Building a desktop
 
-Not yet written. When it exists it will consume the pins of a tag — never a sibling working tree — and
-produce a desktop and an installable image. Whether that is distribution packages, a bootable image,
-or both is still open (see the workspace `README.md`, *Open questions*).
+Two front ends over one driver. `scripts/build.sh` builds every component this release pins, in
+`components.conf` order, into a staged prefix; `make` and `dh` are only front ends for it.
+
+### From source: `make`
+
+```
+make                 # build every component into build/destdir
+make install         # copy the staged prefix to $(DESTDIR)$(PREFIX)
+make install PREFIX=/usr/local DESTDIR=
+make clean           # remove the per-component build trees
+```
+
+The build is DESTDIR-based: `make` needs no root, and `make install` writes only under
+`$(DESTDIR)$(PREFIX)`.
+
+### Debian packages: `make deb`
+
+```
+make deb             # dpkg-buildpackage; the .deb files land in build/deb/
+```
+
+The package version comes from `git describe`, so a release tag names its package without anyone bumping
+a version by hand. `debian/rules` stages the same driver's output into `debian/tmp` and splits it into
+`agora` (runtime) and `agora-dev` (headers, CMake configs, pkg-config) by inspecting what was actually
+installed, so the split cannot go stale.
+
+### How it stays version-agnostic
+
+The driver names no component version. It uses the one interface every component already offers —
+`cmake` configure, build, install — with `-DCMAKE_PREFIX_PATH` pointing at the staged prefix, so each
+component finds its dependencies there in build order. Which components exist, and in what order, is
+`components.conf`, which is data; the versions are the submodule pins.
+
+### What is not built yet
+
+- `widget-zoo` is an empty repository, so `components.conf` marks it `--skip`.
+- `libagora-app` and `window-server` have no `install()` rules: they build, but nothing is staged for
+them, so they cannot appear in a package until those rules are added.
+- `window-server` auto-detects its optional dependencies (libinput, libudev, libdrm, X11) from
+  pkg-config. Until it grows explicit options, a package picks up whatever the build host happens to
+  have — the drift the pinned model exists to remove.
 
 ## The components
 

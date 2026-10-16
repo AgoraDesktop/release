@@ -1,0 +1,43 @@
+Source: agora
+Section: x11
+Priority: optional
+Maintainer: Agora Developers <agora@localhost>
+Build-Depends: debhelper-compat (= 13),
+ cmake (>= 3.24),
+ clang-19 | clang,
+ pkg-config,
+ libwayland-dev,
+ wayland-protocols,
+ libxkbcommon-dev,
+ libicu-dev,
+ libssl-dev,
+ libcurl4-openssl-dev,
+ zlib1g-dev,
+ libpng-dev,
+ libjpeg-dev,
+ libfreetype-dev,
+ libpixman-1-dev,
+ libinput-dev,
+ libdrm-dev
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+Homepage: https://github.com/AgoraDesktop/Agora
+
+Package: agora
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Agora desktop environment - runtime
+ Agora is a desktop environment for Linux and the BSDs: a Cocoa-compatible
+ stack (Core Foundation, Foundation, Core Graphics, Core Text and the
+ Application Kit), a window server, and the desktop's content, built from a
+ set of pinned component revisions.
+ .
+ This package contains the shared libraries and programs.
+
+Package: agora-dev
+Architecture: any
+Section: libdevel
+Depends: agora (= ${binary:Version}), ${misc:Depends}
+Description: Agora desktop environment - development files
+ Headers, CMake package configs and pkg-config files for building programs
+ against the Agora stack.
