@@ -1,62 +1,88 @@
 # Agora — release
 
-*The composition of a whole Agora desktop at one exact revision of every component.*
+*The composition of a whole Agora desktop: a floating `main` that follows every component, and tags
+that freeze one combination.*
 
-**Status: manifest.** This repository pins the first thirteen components of the Agora desktop — the
-Cocoa stack, its supporting libraries, the window server, and a demonstration application — at exact
-revisions. The build that turns those pins into a desktop and an installable image is not written yet.
+**Status: tracking.** `main` follows the `main` branch of each of the thirteen components — the Cocoa
+stack, its supporting libraries, the window server, and a demonstration application. No release tag
+exists yet.
 
 ## What this repository is
 
 Agora is a federation of small repositories, one per component. This is the **release** repository: it
-owns no component of its own and writes none of their code. It does one thing — it records *which*
-revision of *which* component makes up a desktop, and (in time) builds exactly that combination.
+owns no component of its own and writes none of their code. It does two things — it follows *which*
+revision of each component is current, and it records *which* revision of each component a shipped
+desktop was built from.
 
-It is deliberately not the same kind of thing as the development workspace above it. The workspace
-(`AgoraDesktop/Agora`) checks the components out at the tip of `main`, so that work can move; this
-repository pins them, so that a build can be reproduced. Anything that floats is a workspace; anything
-that ships is a release.
+The development workspace (`AgoraDesktop/Agora`) follows the same components at the same tips; it is
+the surrounding checkout, not the thing that gets released. This repository is where a release is
+*named*.
 
-## The pins
+## `main` floats
 
-Each component is a Git submodule of this repository, recorded at one commit and with no `branch` key
-in `.gitmodules` — so `git submodule update --remote` has nothing to float to. The pin *is* the commit.
+`main` tracks the components. Every entry in `.gitmodules` carries `branch = main`, so
 
-### The Cocoa stack
+```
+git submodule update --remote
+```
 
-| component | what it is | pinned at |
-|---|---|---|
-| `libagora-core` | Core Foundation — the C core: strings, collections, run loops | `049719c6e70e` |
-| `libagora-text` | Core Text — text layout and fonts | `ab82ca941d3c` |
-| `libagora-drawing` | Core Graphics — the 2D drawing and geometry model | `06b32839b115` |
-| `libagora-base` | Foundation — Objective-C collections, strings, dates, files, notifications | `d1277c14bc49` |
-| `libagora-app` | Application Kit (AppKit) — windows, views, controls, the menu model | `04dda7ba544c` |
+moves each submodule to the tip of its component's `main`. Committing those moves advances a rolling
+snapshot: `main` is the freshest combination that exists, and it is never a release.
 
-### Supporting libraries
+## Tags pin
 
-| component | what it is | pinned at |
-|---|---|---|
-| `libagora-objc` | the Objective-C runtime (GNUstep libobjc2) | `2f51fdd01d2a` |
-| `libagora-dispatch` | libdispatch — Grand Central Dispatch and the blocks runtime | `eab8828bcb80` |
-| `libagora-lcms2` | little CMS — the colour-management engine Core Graphics uses | `24dc534207c4` |
+A release is a **tag** on this repository. A tagged commit records one exact revision of every
+component — the commit named by that component's own release tag. The tag is the pin; `main` is not.
 
-### The desktop
+To cut one:
 
-| component | what it is | pinned at |
-|---|---|---|
-| `window-server` | the Wayland compositor: outputs, seats, input routing, surface roles, layers | `2b27b0412d63` |
-| `widget-zoo` | a demonstration application: the view and control classes and the menu system | `ef29bb4d4a0a` |
+1. Tag each component at the revision it should ship (`v0.1.0`, or whatever the component's own scheme
+   is).
+2. On `main`, bring the submodules to the tagged commits: `git submodule update --remote --init`, then
+   `git -C <component> checkout <component-tag>` for each.
+3. Commit. A commit whose every submodule gitlink is at a component tag is the release.
+4. `git tag -a vX.Y.Z -m "Agora vX.Y.Z"` and push the tag.
+
+The gitlink is the pin; whether a tagged commit also keeps `branch = main` in `.gitmodules` changes
+nothing about what the tag records. Keeping it means a run of `git submodule update --remote` against
+the tag will float the pins; dropping it for the tagged commit makes the tag hermetic. Either is
+workable — the tag records the commits regardless.
 
 ## Building a desktop
 
-Not yet written. When it exists it will consume the pins above — never a sibling working tree — and
-produce a desktop and an installable image. Whether that is distribution packages, a bootable image, or
-both is still open (see the workspace `README.md`, *Open questions*).
+Not yet written. When it exists it will consume the pins of a tag — never a sibling working tree — and
+produce a desktop and an installable image. Whether that is distribution packages, a bootable image,
+or both is still open (see the workspace `README.md`, *Open questions*).
+
+## The components
+
+### The Cocoa stack
+
+| component | what it is |
+|---|---|
+| `libagora-core` | Core Foundation — the C core: strings, collections, run loops |
+| `libagora-text` | Core Text — text layout and fonts |
+| `libagora-drawing` | Core Graphics — the 2D drawing and geometry model |
+| `libagora-base` | Foundation — Objective-C collections, strings, dates, files, notifications |
+| `libagora-app` | Application Kit (AppKit) — windows, views, controls, the menu model |
+
+### Supporting libraries
+
+| component | what it is |
+|---|---|
+| `libagora-objc` | the Objective-C runtime (GNUstep libobjc2) |
+| `libagora-dispatch` | libdispatch — Grand Central Dispatch and the blocks runtime |
+| `libagora-lcms2` | little CMS — the colour-management engine Core Graphics uses |
+
+### The desktop
+
+| component | what it is |
+|---|---|
+| `window-server` | the Wayland compositor: outputs, seats, input routing, surface roles, layers |
+| `widget-zoo` | a demonstration application: the view and control classes and the menu system |
 
 ## Working here
 
-- The pins are the product. Changing a pin is a release action, not a development convenience: move a
-  component forward here only when that exact revision is the one the release is meant to carry.
-- Keep the `branch` key out of `.gitmodules`. A component in this repository tracks a commit, not a
-  branch; if a pin should float, it does not belong in a release.
-- The component's own `README` describes the component. This document describes only the composition.
+- `main` is a snapshot, not a release. Move a component forward on `main` freely; a release happens
+  only when a tag is cut.
+- A component's own `README` describes the component. This document describes only the composition.
