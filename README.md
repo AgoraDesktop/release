@@ -100,11 +100,14 @@ component finds its dependencies there in build order. Which components exist, a
 ### What is not built yet
 
 - `widget-zoo` is an empty repository, so `components.conf` marks it `--skip`.
-- `libagora-app` and `window-server` have no `install()` rules: they build, but nothing is staged for
-them, so they cannot appear in a package until those rules are added.
 - `window-server` auto-detects its optional dependencies (libinput, libudev, libdrm, X11) from
   pkg-config. Until it grows explicit options, a package picks up whatever the build host happens to
   have — the drift the pinned model exists to remove.
+- `libagora-app`'s test suite is added unconditionally (`enable_testing()` does not consult
+  `BUILD_TESTING`), and one test — `tests/text_hyphenation.m` — links
+  `CFStringIsHyphenationAvailableForLocale`, which `libagora-core` does not define in a committed tree.
+  A full `make` therefore stops at that link until the hyphenation code lands in Core Foundation, or
+  the suite is gated on `BUILD_TESTING`. The library itself builds and installs.
 
 ## The components
 
