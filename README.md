@@ -34,19 +34,33 @@ snapshot: `main` is the freshest combination that exists, and it is never a rele
 A release is a **tag** on this repository. A tagged commit records one exact revision of every
 component — the commit named by that component's own release tag. The tag is the pin; `main` is not.
 
-To cut one:
+The pin set is authored as a **manifest**, one file per release under `releases/`:
 
-1. Tag each component at the revision it should ship (`v0.1.0`, or whatever the component's own scheme
-   is).
-2. On `main`, bring the submodules to the tagged commits: `git submodule update --remote --init`, then
-   `git -C <component> checkout <component-tag>` for each.
-3. Commit. A commit whose every submodule gitlink is at a component tag is the release.
-4. `git tag -a vX.Y.Z -m "Agora vX.Y.Z"` and push the tag.
+```
+# component          ref
+libagora-core        v0.9.0
+libagora-drawing     v1.24
+window-server        v0.4.2
+```
 
-The gitlink is the pin; whether a tagged commit also keeps `branch = main` in `.gitmodules` changes
-nothing about what the tag records. Keeping it means a run of `git submodule update --remote` against
-the tag will float the pins; dropping it for the tagged commit makes the tag hermetic. Either is
-workable — the tag records the commits regardless.
+A ref is any ref resolvable in that component — a tag, a commit, a branch. It is resolved to a commit
+when the release is cut, and the commit is what the tag records.
+
+To cut a release:
+
+```
+scripts/cut-release.sh --seed 1.3     # start releases/1.3.txt from what main holds
+$EDITOR releases/1.3.txt              # set each component's ref
+scripts/cut-release.sh --dry-run 1.3  # resolve and report; write nothing
+scripts/cut-release.sh 1.3            # build the commit and tag it
+git push origin 1.3                   # publish the tag
+```
+
+The script writes a commit whose tree records every component's resolved commit as a gitlink, with the
+branch-tracking keys removed from `.gitmodules` and the manifest committed beside them at
+`releases/<version>.txt`. `main` is not touched: a release hangs off it, reached only by its tag. That
+is what makes a tagged release hermetic — `git submodule update --remote` against it has no branch to
+follow.
 
 ## Building a desktop
 
