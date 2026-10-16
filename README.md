@@ -100,9 +100,12 @@ component finds its dependencies there in build order. Which components exist, a
 ### What is not built yet
 
 - `widget-zoo` is an empty repository, so `components.conf` marks it `--skip`.
-- `window-server` auto-detects its optional dependencies (libinput, libudev, libdrm, X11) from
-  pkg-config. Until it grows explicit options, a package picks up whatever the build host happens to
-  have — the drift the pinned model exists to remove.
+- `window-server`'s backends are explicit now — `AWS_WITH_DRM` / `AWS_WITH_X11` / `AWS_WITH_LIBINPUT`,
+  set on the `window-server` line of `components.conf` — so the feature set follows the release rather
+  than the build host. The open question is libinput itself: its device-input path needs `libudev` and
+  `logind`, which the workspace `README.md` excludes, so a build either accepts them or configures
+  `-DAWS_WITH_LIBINPUT=OFF` and has no device input. The release carries it ON, because the only other
+  input sources are the nested backend and none.
 - `libagora-app`'s test suite is added unconditionally (`enable_testing()` does not consult
   `BUILD_TESTING`), and one test — `tests/text_hyphenation.m` — links
   `CFStringIsHyphenationAvailableForLocale`, which `libagora-core` does not define in a committed tree.

@@ -18,6 +18,7 @@ Build-Depends: debhelper-compat (= 13),
  libfreetype-dev,
  libpixman-1-dev,
  libinput-dev,
+ libudev-dev,
  libdrm-dev
 Standards-Version: 4.6.2
 Rules-Requires-Root: no
