@@ -102,10 +102,10 @@ component finds its dependencies there in build order. Which components exist, a
 - `widget-zoo` is an empty repository, so `components.conf` marks it `--skip`.
 - `window-server`'s backends are explicit now — `AWS_WITH_DRM` / `AWS_WITH_X11` / `AWS_WITH_LIBINPUT`,
   set on the `window-server` line of `components.conf` — so the feature set follows the release rather
-  than the build host. The open question is libinput itself: its device-input path needs `libudev` and
-  `logind`, which the workspace `README.md` excludes, so a build either accepts them or configures
-  `-DAWS_WITH_LIBINPUT=OFF` and has no device input. The release carries it ON, because the only other
-  input sources are the nested backend and none.
+  than the build host. libinput is **ON by decision**: its device-input path needs `libudev` and `logind`,
+  which the workspace `README.md`'s "No systemd" rule excludes, and real device input was judged to
+  outrank the rule. The release therefore build-depends on `libudev-dev` and ships a compositor linked
+  against libudev and logind — a deliberate, recorded deviation, not an oversight.
 - `libagora-app`'s test suite is added unconditionally (`enable_testing()` does not consult
   `BUILD_TESTING`), and one test — `tests/text_hyphenation.m` — links
   `CFStringIsHyphenationAvailableForLocale`, which `libagora-core` does not define in a committed tree.
