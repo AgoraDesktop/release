@@ -50,3 +50,7 @@
 	path = widget-zoo
 	url = https://github.com/AgoraDesktop/widget-zoo.git
 	branch = main
+[submodule "workspace"]
+	path = workspace
+	url = https://github.com/AgoraDesktop/workspace.git
+	branch = main
