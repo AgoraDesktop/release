@@ -19,6 +19,9 @@ BUILD_DIR ?= build
 STAGE     ?= $(BUILD_DIR)/destdir
 JOBS      ?=
 DRIVER    ?= scripts/build.sh
+# Left empty on purpose: gen-changelog.sh derives the version from the checked
+# out tag. Set it to override, e.g. `make VERSION=0.0.1 deb`.
+VERSION   ?=
 
 ARGS := --prefix "$(PREFIX)" --destdir "$(STAGE)" --build-root "$(BUILD_DIR)"
 ifneq ($(strip $(JOBS)),)
@@ -35,8 +38,7 @@ install: all
 	cp -a "$(STAGE)$(PREFIX)/." "$(DESTDIR)$(PREFIX)/"
 
 deb:
-	VERSION="$${VERSION:-$$(git describe --tags --always 2>/dev/null || echo 0.0.0)}" \
-		scripts/gen-changelog.sh > debian/changelog
+	VERSION="$(VERSION)" scripts/gen-changelog.sh > debian/changelog
 	dpkg-buildpackage -b -us -uc
 	mkdir -p "$(BUILD_DIR)/deb"
 	mv ../agora_*.deb ../agora_*.buildinfo ../agora_*.changes "$(BUILD_DIR)/deb/" 2>/dev/null || true

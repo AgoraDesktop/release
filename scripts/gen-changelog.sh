@@ -11,14 +11,20 @@ set -eu
 
 version=${VERSION:-}
 if [ -z "$version" ]; then
-	version=$(git describe --tags --always 2>/dev/null || echo 0.0.0)
+	# An exact tag names the release; otherwise a describe suffix carries the
+	# distance and the commit; with no tags at all, name the build after the
+	# commit and sort it below every tagged release. A bare commit id must
+	# never be mistaken for a version number, which is why it is prefixed
+	# rather than tested for a leading digit.
+	if v=$(git describe --tags --exact-match 2>/dev/null); then
+		version=$v
+	elif d=$(git describe --tags 2>/dev/null); then
+		version=$d
+	else
+		version="0.0.0~$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
+	fi
 fi
 version=${version#v}
-# A Debian version must start with a digit; a bare commit id does not.
-case $version in
-	[0-9]*) ;;
-	*)      version="0.0.0~$version" ;;
-esac
 case $version in
 	*-*) ;;
 	*)   version=$version-1 ;;
@@ -32,5 +38,5 @@ agora ($version) unstable; urgency=medium
 
   * Release build from Agora $commit.
 
- -- Agora <agora@example.invalid>  $date
+ -- Kyle J Cardoza <Kyle.Cardoza@icloud.com>  $date
 EOF

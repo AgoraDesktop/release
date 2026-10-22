@@ -2,32 +2,175 @@ Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: Agora
 Source: https://github.com/AgoraDesktop/Agora
 
+# Agora is licensed per artifact: LGPL-3.0-or-later for the libraries,
+# GPL-3.0-or-later for the programs. In this format the LAST matching Files
+# paragraph wins, so the umbrella default is stated first and every
+# per-artifact override follows it. Version 3 rather than 2.1 is forced by the
+# Apache-2.0 components, which are compatible with GPLv3/LGPLv3 only.
+#
+# Licence texts are standalone paragraphs at the end of this file.
+
 Files: *
-Copyright: Agora contributors
-License: MIT
- Permission is hereby granted, free of charge, to any person obtaining a
- copy of this software and associated documentation files (the "Software"),
- to deal in the Software without restriction, including without limitation
- the rights to use, copy, modify, merge, publish, distribute, sublicense,
- and/or sell copies of the Software, and to permit persons to whom the
- Software is furnished to do so, subject to the following conditions:
+Copyright: 2026 Kyle J. Cardoza
+License: GPL-3+
+Comment: The umbrella. Programs — usr/bin/*, usr/libexec/Workspace.app/*,
+ usr/lib/cmake/AgoraWindowServer/* — and everything not claimed by a later
+ stanza below.
  .
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
+ The Agora tree was MIT licensed before 2026-10-22; commits before that date
+ remain available under MIT. No release was ever tagged.
+
+# ---------------------------------------------------------------------------
+# Agora libraries
+# ---------------------------------------------------------------------------
+
+Files: usr/lib/libagora-*.so*
+       usr/lib/*/libagora-*.so*
+       usr/lib/cmake/AgoraApp/*
+       usr/lib/cmake/AgoraDrawing/*
+       usr/lib/cmake/AgoraIconServices/*
+       usr/lib/cmake/AgoraLaunchServices/*
+       usr/lib/cmake/AgoraText/*
+       usr/lib/cmake/AgoraWatch/*
+       usr/lib/cmake/Foundation/*
+       usr/include/AppKit/*
+       usr/include/CoreGraphics/*
+       usr/include/CoreText/*
+       usr/include/Foundation/*
+       usr/include/IconServices/*
+       usr/include/LaunchServices/*
+       usr/include/Watch/*
+Copyright: 2026 Kyle J. Cardoza
+License: LGPL-3+
+Comment: libagora-base, -app, -drawing, -iconservices, -launchservices, -text
+ and -watch, with their public headers.
  .
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- IN THE SOFTWARE.
+ libagora-app additionally carries art derived from Bootstrap Icons v1.13.2
+ (Expat, © 2019-2024 The Bootstrap Authors), restyled; see the Expat paragraph
+ below. The generated table is therefore LGPL-3.0-or-later AND Expat.
 
-# Agora pins third-party components and ships their built output. Each carries
-# its own licence, which travels with the component rather than with Agora.
+# ---------------------------------------------------------------------------
+# Third-party components, shipped as pinned extractions
+# ---------------------------------------------------------------------------
 
-Files: usr/lib/*/libdispatch*
+Files: usr/lib/libagora-core.so*
+       usr/lib/*/libagora-core.so*
+       usr/lib/libagora-dispatch.so*
+       usr/lib/*/libagora-dispatch.so*
+       usr/lib/libBlocksRuntime.so*
+       usr/lib/*/libBlocksRuntime.so*
+       usr/lib/cmake/CoreFoundation/*
+       usr/lib/cmake/dispatch/*
+       usr/include/CoreFoundation/*
+       usr/include/dispatch/*
+       usr/include/Block.h
+       usr/include/Block_private.h
+       usr/share/man/man3/dispatch*.3
 Copyright: Apple Inc. and the Swift project authors
+License: Apache-2.0
+Comment: Extracted verbatim from swiftlang/swift-corelibs-foundation
+ (Sources/CoreFoundation/) and swiftlang/swift-corelibs-libdispatch at pinned
+ revisions. Upstream's LICENSE travels beside the sources in the component
+ repositories; these files are NOT relicensed under Agora's terms.
+
+Files: usr/lib/libobjc.so*
+       usr/lib/*/libobjc.so*
+       usr/lib/cmake/libobjc/*
+       usr/lib/pkgconfig/libobjc.pc
+       usr/include/objc/*
+       usr/include/os/*
+Copyright: 2009 David Chisnall
+License: Expat
+Comment: GNUstep's libobjc2, extracted at tag v2.3 (e877e78). It is Expat, not
+ LGPL — it is the only GNUstep code in the tree. One source file is modified
+ (arc.mm, a small-object retain-count crash fix); see that component's
+ PROVENANCE.md.
+
+Files: usr/lib/liblcms2.so*
+       usr/lib/*/liblcms2.so*
+       usr/lib/cmake/lcms2/*
+       usr/lib/pkgconfig/lcms2.pc
+       usr/include/lcms2.h
+       usr/include/lcms2_plugin.h
+       usr/share/man/man1/jpgicc.1
+       usr/share/man/man1/linkicc.1
+       usr/share/man/man1/psicc.1
+       usr/share/man/man1/tifdiff.1
+       usr/share/man/man1/tificc.1
+       usr/share/man/man1/transicc.1
+       usr/bin/jpgicc
+       usr/bin/linkicc
+       usr/bin/psicc
+       usr/bin/tifdiff
+       usr/bin/tificc
+       usr/bin/transicc
+Copyright: 2023 Marti Maria Saguer
+License: Expat
+Comment: Little CMS, vendored as libagora-lcms2. The usr/bin utilities are
+ lcms2's own ICC tools, not Agora programs, which is why they are Expat rather
+ than the GPL-3+ umbrella default.
+
+# ---------------------------------------------------------------------------
+# Vendored art (data, not linked code)
+# ---------------------------------------------------------------------------
+
+Files: usr/share/icons/Frost/*
+Copyright: 2026 Sayantan
+License: Expat
+Comment: Frost icon theme, https://github.com/thissayantan/frost-icon-theme at
+ tag v0.3.1 (84e3f873). Its LICENSE travels beside the art.
+
+Files: usr/share/fonts/agora/*
+Copyright: 2010-2024 the Anton, Cinzel, Comic Neue, EB Garamond, Figtree,
+ Fira Sans, Gelasio, IBM Plex, Inter, Jost, Liberation, Mulish, Noto, Nunito,
+ Pacifico, Pinyon, and Source font project authors
+License: OFL-1.1
+Comment: 28 families, each carrying its own licence file beside the fonts.
+ The full text of the SIL Open Font License 1.1 is installed with each family,
+ e.g. usr/share/fonts/agora/Inter/LICENSE.txt.
+
+Files: usr/share/fonts/agora/SourceSerif4/*
+Copyright: 2014-2023 Adobe (http://www.adobe.com/), with Reserved Font Name
+ "Source"
+License: Apache-2.0
+Comment: Source Serif 4 ships under Apache-2.0 rather than the OFL-1.1 default
+ above, and keeps its Reserved Font Name.
+
+# ---------------------------------------------------------------------------
+# Standalone licence texts
+# ---------------------------------------------------------------------------
+
+License: GPL-3+
+ This program is free software: you can redistribute it and/or modify it under
+ the terms of the GNU General Public License as published by the Free Software
+ Foundation, either version 3 of the License, or (at your option) any later
+ version.
+ .
+ This program is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ .
+ On Debian systems the complete text of the GNU General Public License version
+ 3 is in /usr/share/common-licenses/GPL-3, and is also shipped as COPYING in
+ the source package.
+
+License: LGPL-3+
+ This library is free software; you can redistribute it and/or modify it under
+ the terms of the GNU Lesser General Public License as published by the Free
+ Software Foundation, either version 3 of the License, or (at your option) any
+ later version.
+ .
+ This library is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+ details.
+ .
+ The GNU Lesser General Public License version 3 is a set of additional
+ permissions on top of the GNU General Public License version 3, not a
+ standalone document, which is why both are shipped. On Debian systems they
+ are in /usr/share/common-licenses/LGPL-3 and
+ /usr/share/common-licenses/GPL-3.
+
 License: Apache-2.0
  Licensed under the Apache License, Version 2.0 (the "License"); you may not
  use this file except in compliance with the License. You may obtain a copy of
@@ -39,13 +182,7 @@ License: Apache-2.0
  License for the specific language governing permissions and limitations
  under the License.
 
-# The interim default icon set is Frost, vendored from
-# https://github.com/thissayantan/frost-icon-theme at tag v0.3.1. Its LICENSE
-# travels beside the art in usr/share/icons/Frost/.
-
-Files: usr/share/icons/Frost/*
-Copyright: 2026 Sayantan
-License: MIT
+License: Expat
  Permission is hereby granted, free of charge, to any person obtaining a
  copy of this software and associated documentation files (the "Software"),
  to deal in the Software without restriction, including without limitation
@@ -63,3 +200,12 @@ License: MIT
  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  IN THE SOFTWARE.
+
+License: OFL-1.1
+ The SIL Open Font License, version 1.1. The complete text is installed with
+ each font family beside the fonts it covers — see, for example,
+ usr/share/fonts/agora/Inter/LICENSE.txt and
+ usr/share/fonts/agora/IBMPlexMono/OFL.txt — and is carried verbatim from
+ upstream. The licence permits bundling and redistribution with software, and
+ reserves the fonts' names: any modified version must not use a Reserved Font
+ Name.

@@ -1,7 +1,7 @@
 Source: agora
 Section: x11
 Priority: optional
-Maintainer: Agora Developers <agora@localhost>
+Maintainer: Kyle J Cardoza <Kyle.Cardoza@icloud.com>
 Build-Depends: debhelper-compat (= 13),
  cmake (>= 3.24),
  clang-19 | clang,
@@ -28,17 +28,32 @@ Package: agora
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Agora desktop environment - runtime
- Agora is a desktop environment for Linux and the BSDs: a Cocoa-compatible
- stack (Core Foundation, Foundation, Core Graphics, Core Text and the
- Application Kit), a window server, and the desktop's content, built from a
- set of pinned component revisions.
+ Agora is a desktop environment for Linux and the BSDs, built entirely from
+ source. It is a Cocoa-compatible stack - Core Foundation, Foundation, Core
+ Graphics, Core Text and the Application Kit, implemented in Objective-C -
+ together with a Wayland window server that composites client-side window
+ chrome, and the Workspace shell that draws the desktop, its menu bar, dock,
+ icons and file windows.
  .
- This package contains the shared libraries and programs.
+ The stack targets behavioural and API compatibility, so a program written
+ against the documented Cocoa surface builds and runs against Agora without
+ modification, and the desktop follows Mac OS X's window management rather
+ than a Linux desktop's.
+ .
+ This package contains the shared libraries and the programs that make up a
+ session: the window server and the Workspace shell.
 
 Package: agora-dev
 Architecture: any
 Section: libdevel
 Depends: agora (= ${binary:Version}), ${misc:Depends}
 Description: Agora desktop environment - development files
- Headers, CMake package configs and pkg-config files for building programs
- against the Agora stack.
+ Headers, CMake package configuration files and pkg-config metadata for
+ building C and Objective-C programs against the Agora stack: Core
+ Foundation, Foundation, Core Graphics, Core Text, the Application Kit, Icon
+ Services, Launch Services and the file-system watch service, together with
+ the window server's client protocol.
+ .
+ The libraries are installed as shared objects and are versioned normally, so
+ a program built against them needs no Agora-specific build tooling; CMake
+ finds each component with find_package(<Component> CONFIG).
