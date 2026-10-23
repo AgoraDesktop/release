@@ -154,6 +154,17 @@ while IFS= read -r path; do
 			echo "install-layout: cannot create $target" >&2
 			exit 1
 		}
+		# **THE TEMPORARY DIRECTORY IS WRITTEN BY EVERY ACCOUNT.** `NSTemporaryDirectory()` answers it and
+		# applications put files there, so it carries the mode `/tmp` and a Mac's temporary directory have —
+		# sticky and world-writable. Without it, every write under it fails EACCES for the user who is not
+		# root, which is the same class of failure the autosave probe measured when the directory did not exist
+		# yet. Only on creation: an administrator who has already chosen a mode keeps it.
+		if [ "$path" = "System/Temporary Files" ]; then
+			chmod 1777 "$target" || {
+				echo "install-layout: cannot set the mode on $target" >&2
+				exit 1
+			}
+		fi
 	fi
 	created=$((created + 1))
 done < "$list_file"
