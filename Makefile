@@ -33,9 +33,12 @@ endif
 all:
 	$(DRIVER) $(ARGS)
 
+# THE STAGE IS THE IMAGE ROOT, so the copy is rooted there rather than at the prefix: `scripts/build.sh`
+# installs the components under $(PREFIX) and creates the installation's directory set (/Applications,
+# /Library, /System, ...) beside it, and a complete install needs both.
 install: all
-	install -d "$(DESTDIR)$(PREFIX)"
-	cp -a "$(STAGE)$(PREFIX)/." "$(DESTDIR)$(PREFIX)/"
+	install -d "$(DESTDIR)/"
+	cp -a "$(STAGE)/." "$(DESTDIR)/"
 
 deb:
 	VERSION="$(VERSION)" scripts/gen-changelog.sh > debian/changelog
@@ -52,7 +55,7 @@ distclean:
 	rm -rf debian/tmp debian/agora debian/agora-dev debian/agora-dbgsym \
 	       debian/files debian/.debhelper debian/*.substvars \
 	       debian/changelog debian/agora-files debian/agora-links \
-	       debian/agora.install debian/agora-dev.install
+	       debian/agora.install debian/agora-dev.install debian/agora.dirs
 
 list:
 	$(DRIVER) --dry-run $(ARGS)

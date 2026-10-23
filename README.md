@@ -71,13 +71,20 @@ Two front ends over one driver. `scripts/build.sh` builds every component this r
 
 ```
 make                 # build every component into build/destdir
-make install         # copy the staged prefix to $(DESTDIR)$(PREFIX)
+make install         # copy the staged image to $(DESTDIR)/
 make install PREFIX=/usr/local DESTDIR=
 make clean           # remove the per-component build trees
 ```
 
-The build is DESTDIR-based: `make` needs no root, and `make install` writes only under
-`$(DESTDIR)$(PREFIX)`.
+The build is DESTDIR-based: `make` needs no root, and `make install` writes only under `$(DESTDIR)`.
+
+**The stage is the image root, not just the prefix.** Components install under `$(PREFIX)`, and one
+thing does not: the installation's directory set. A complete installation carries the Mac OS X
+directories the stack names — `/Applications`, `/Library`, `/System`, `/Users`, `/Volumes`, and the
+home-side set — because the Cocoa surface names those paths rather than searching for them
+(workspace `README.md`, "The installation"). `scripts/install-layout.sh` creates them beside the prefix
+in the same DESTDIR, and `make install` copies the whole stage, so `make install` produces a complete
+installation rather than a prefix with a Mac-shaped name.
 
 ### Debian packages: `make deb`
 
@@ -88,7 +95,9 @@ make deb             # dpkg-buildpackage; the .deb files land in build/deb/
 The package version comes from `git describe`, so a release tag names its package without anyone bumping
 a version by hand. `debian/rules` stages the same driver's output into `debian/tmp` and splits it into
 `agora` (runtime) and `agora-dev` (headers, CMake configs, pkg-config) by inspecting what was actually
-installed, so the split cannot go stale.
+installed, so the split cannot go stale. The installation's directories are empty, so they are not a file
+list at all: `override_dh_installdirs` asks `scripts/install-layout.sh --list` for them and hands the answer
+to `dh_installdirs`, which is the one mechanism that puts an empty directory in a package.
 
 ### How it stays version-agnostic
 

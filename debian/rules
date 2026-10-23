@@ -38,6 +38,14 @@ override_dh_auto_test:
 override_dh_auto_install:
 	@echo "dh: scripts/build.sh already staged the desktop under debian/tmp"
 
+# THE INSTALLATION'S DIRECTORIES ARE EMPTY, SO dh_install CANNOT CARRY THEM: a file list has no entry for a
+# directory with nothing in it. dh_installdirs is the mechanism for exactly this, and the list is the build's
+# own - the same script that creates them at the image root in a staging install - so the package and a
+# `make install` cannot disagree. Generating it here, BEFORE dh_installdirs runs, is what the ordering buys.
+override_dh_installdirs:
+	scripts/install-layout.sh --list > debian/agora.dirs
+	dh_installdirs
+
 # Split by what was installed, not by a pattern that could go stale. A shared
 # library is runtime whether or not its component versioned it:
 #

@@ -199,4 +199,17 @@ while read -r name rest; do
 	fi
 done < "$list"
 
+# THE INSTALLATION'S DIRECTORY SET, ONCE, AT THE ROOT OF WHAT WAS STAGED. A complete installation carries
+# the Mac OS X directories the stack names (README, "The installation"), and they live at the image root
+# rather than under the prefix, so they are created beside `$PREFIX` in the same DESTDIR: `make install`
+# copies the whole stage, and `debian/rules` lets debhelper create the empty ones in the package.
+if $do_install; then
+	echo "build: the installation's directory set"
+	if $dry_run; then
+		printf '  + %s/scripts/install-layout.sh --destdir %s\n' "$root" "$stage_root"
+	else
+		"$root/scripts/install-layout.sh" --destdir "$stage_root"
+	fi
+fi
+
 echo "build: done"
