@@ -3,7 +3,7 @@
 *The composition of a whole Agora desktop: a floating `main` that follows every component, and tags
 that freeze one combination.*
 
-**Status: tracking.** `main` follows the `main` branch of each of the fourteen components — the Cocoa
+**Status: tracking.** `main` follows the `main` branch of each of the fifteen components — the Cocoa
 stack, its supporting libraries, the window server, the Workspace shell, and a demonstration
 application. No release tag exists yet.
 
@@ -131,6 +131,7 @@ component finds its dependencies there in build order. Which components exist, a
 | `libagora-text` | Core Text — text layout and fonts |
 | `libagora-drawing` | Core Graphics — the 2D drawing and geometry model |
 | `libagora-base` | Foundation — Objective-C collections, strings, dates, files, notifications |
+| `libagora-data` | Core Data — the managed object model, store and fetch layer AppKit builds on |
 | `libagora-app` | Application Kit (AppKit) — windows, views, controls, the menu model |
 
 ### Supporting libraries

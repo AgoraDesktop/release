@@ -54,3 +54,7 @@
 	path = workspace
 	url = https://github.com/AgoraDesktop/workspace.git
 	branch = main
+[submodule "libagora-data"]
+	path = libagora-data
+	url = https://github.com/AgoraDesktop/libagora-data.git
+	branch = main
