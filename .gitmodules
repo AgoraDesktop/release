@@ -58,3 +58,9 @@
 	path = libagora-data
 	url = https://github.com/AgoraDesktop/libagora-data.git
 	branch = main
+[submodule "libagora-tsm"]
+	path = libagora-tsm
+	url = https://github.com/AgoraDesktop/libagora-tsm.git
+[submodule "terminal"]
+	path = terminal
+	url = https://github.com/AgoraDesktop/terminal.git
