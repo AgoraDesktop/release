@@ -3,9 +3,9 @@
 *The composition of a whole Agora desktop: a floating `main` that follows every component, and tags
 that freeze one combination.*
 
-**Status: tracking.** `main` follows the `main` branch of each of the fifteen components — the Cocoa
-stack, its supporting libraries, the window server, the Workspace shell, and a demonstration
-application. No release tag exists yet.
+**Status: tracking.** `main` follows the `main` branch of each of the eighteen components — the Cocoa
+stack, its supporting libraries, the web view that embeds a page, the window server, the Workspace shell,
+and a demonstration application. No release tag exists yet.
 
 ## What this repository is
 

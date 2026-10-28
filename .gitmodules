@@ -64,3 +64,7 @@
 [submodule "terminal"]
 	path = terminal
 	url = https://github.com/AgoraDesktop/terminal.git
+[submodule "libagora-webview"]
+	path = libagora-webview
+	url = https://github.com/AgoraDesktop/libagora-webview.git
+	branch = main
