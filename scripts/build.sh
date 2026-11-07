@@ -212,4 +212,18 @@ if $do_install; then
 	fi
 fi
 
+# THE SESSION'S LAUNCHER, AND IT IS THE RELEASE'S OWN RATHER THAN A COMPONENT'S. `scripts/agora-session` starts the
+# scene a testing installation exists to show — the window server, Workspace, the Dock and the System UI — and no single
+# component can own it: it is the one thing that names its siblings. Installed into the prefix's `bin`, it finds that
+# prefix by being in it, so the same file works from `/usr/local`, from `/usr` and from a stage.
+if $do_install; then
+	echo "build: agora-session"
+	if $dry_run; then
+		printf '  + install -m755 %s/scripts/agora-session %s/bin/agora-session\n' "$root" "$stage"
+	else
+		install -d "$stage/bin"
+		install -m755 "$root/scripts/agora-session" "$stage/bin/agora-session"
+	fi
+fi
+
 echo "build: done"

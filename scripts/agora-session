@@ -1,0 +1,245 @@
+#!/bin/bash
+# Copyright © 2026 Kyle J. Cardoza.
+# SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+### The session an INSTALLED Agora starts: window server, wallpaper, Workspace, the Dock.
+#
+#   window-server          nested on the X11 desktop, and it GRABS NOTHING: no XGrabPointer, no XGrabKeyboard
+#   Workspace              the desktop, its icons and the application menu bar
+#   the Dock               running applications as tiles, in a vertical strip on the right
+#   the System UI          the system menu's square, clickable because this process draws the menu
+#   wallpaper client       the still image at kCGDesktopWindowLevel: ONE frame, then it holds
+#
+# **THIS IS THE SAME SCENE AS `demo/agora-session.sh` AND IT IS NOT THE SAME SCRIPT.** That one is a DEVELOPMENT
+# session: it names the components' build trees, prepends them to `LD_LIBRARY_PATH`, and points the icon, cursor and
+# application searches at the checkout, because a tree that has been built and not installed is reachable no other way.
+# THIS one runs what an installation laid down — `bin/window-server`, `libexec/Workspace.app` and its siblings — and it
+# needs no environment at all: every Agora library installs its own RUNPATH, so the bundles resolve their dependencies
+# from the prefix they sit in. A person who installed Agora types `agora-session` and gets a desktop.
+#
+# **IT FINDS ITS PREFIX BY BEING IN IT**, not by being told: the script is installed as `$PREFIX/bin/agora-session`, so
+# its own location is the answer, and the same file works from `/usr/local`, from `/usr`, from a staged image root and
+# from a `~/.local` an unprivileged install wrote. A stated prefix would be a second copy of the truth that a relocated
+# installation would get wrong.
+#
+# Usage:  agora-session [WIDTHxHEIGHT]
+#         AGORA_DESKTOP=/path agora-session
+#         AGORA_WALLPAPER=/path/to/image.jpg agora-session
+#         AGORA_DPI=57.97 agora-session              # force the output scale (dots per inch)
+#         AGORA_UI_SCALE=1.25 agora-session          # a comfort factor on top of it (1.0 is the default)
+#         AGORA_SESSION_GET_INFO=/path agora-session # start with that item's Get Info open
+# Ctrl-C stops everything.
+set -u
+
+BINDIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+PREFIX="$(dirname "$BINDIR")"
+LIBEXEC="$PREFIX/libexec"
+
+SERVER_BIN="$BINDIR/window-server"
+# The bundle is laid out per platform and architecture — Contents/<platform>/<arch>/Workspace — and an installation
+# carries exactly one slice, so the glob is exact. `libagora-core`'s resolver spells the same names.
+bundle_bin() { ls "$LIBEXEC/$1.app/Contents"/*/*/"$1" 2>/dev/null | head -1; }
+WORKSPACE_BIN="$(bundle_bin Workspace)"
+DOCK_BIN="$(bundle_bin Dock)"
+SYSTEMUI_BIN="$(bundle_bin SystemUI)"
+
+if [ ! -x "$SERVER_BIN" ]; then
+	echo "agora-session: no window server at $SERVER_BIN" >&2
+	echo "  this script runs an INSTALLED Agora; $BINDIR does not look like a prefix" >&2
+	exit 1
+fi
+if [ ! -x "$WORKSPACE_BIN" ]; then
+	echo "agora-session: no Workspace bundle under $LIBEXEC" >&2
+	echo "  a session is the desktop and the compositor; the desktop half is missing" >&2
+	exit 1
+fi
+
+GEOM="${1:-1280x720}"
+W="${GEOM%x*}"
+H="${GEOM#*x}"
+DPI=()
+[ -n "${AGORA_DPI:-}" ] && DPI=(--dpi "${AGORA_DPI}")
+
+if [ -z "${DISPLAY:-}" ]; then
+	echo "agora-session: no DISPLAY — the nested backend needs an X11 desktop to open a window on" >&2
+	exit 1
+fi
+# **AND A PRIVATE RUNTIME DIRECTORY WHEN THE HOST HAS NOT GIVEN ONE.** The compositor's socket lives in
+# `XDG_RUNTIME_DIR`; a login sets that, a session started from a shell without it does not, and a socket in a world-writable
+# `/tmp` is one another account can squat on.
+if [ -z "${XDG_RUNTIME_DIR:-}" ]; then
+	export XDG_RUNTIME_DIR="${TMPDIR:-/tmp}/agora-$(id -u)"
+	mkdir -p "$XDG_RUNTIME_DIR" && chmod 700 "$XDG_RUNTIME_DIR"
+fi
+
+# **WHERE THE APPLICATIONS ARE, WHICH AN INSTALLATION DOES NOT HAVE TO SAY TWICE.** Launch Services scans the standard
+# roots and this session's bundles are not in them: an installation keeps them under `libexec`, beside Workspace, because
+# a bundle is not a `$PATH` program. `AGORA_APPLICATIONS` is the door the scanner already has for a directory list, and
+# it ADDS to the standard roots — so an application exported into `~/Applications` still has a tile and a name.
+export AGORA_APPLICATIONS="$LIBEXEC${AGORA_APPLICATIONS:+:$AGORA_APPLICATIONS}"
+
+# **AND WHERE EVERY APPLICATION'S PREFERENCES LIVE.** `NSUserDefaults` keeps its files under a CONFIGURATION ROOT rather
+# than under `$HOME`, because an Agora installation lays down the Mac OS X directories at the image root. Left unset the
+# store points into the host's root-owned home parent, where nothing is writable; the account's own directory is where
+# this session, the closest thing an installation has to a login, keeps them.
+export AGORA_CONFIG_ROOT="${AGORA_CONFIG_ROOT:-$HOME/.agora}"
+
+RUNTIME="${XDG_RUNTIME_DIR:-/tmp}"
+SOCK="${AGORA_SESSION_SOCKET:-agora-session}"
+DESK="${AGORA_DESKTOP:-$HOME/Desktop}"
+
+# **THE HOME DIRECTORY SET IS A LOGIN'S JOB, SO THE SESSION DOES IT** — the same list `install-layout.sh --user` writes,
+# for the reason `demo/agora-session.sh` records: the Dock draws `~/.Trash` as the can, and a machine that has never
+# thrown anything away had no such directory.
+for d in Applications Desktop Documents Downloads Movies Music Pictures Public \
+         Library "Library/Application Scripts" "Library/Application Support" Library/Autosave \
+         Library/Caches Library/Colors Library/Documentation Library/Fonts "Library/Input Methods" \
+         Library/PreferencePanes Library/Preferences Library/Printers/PPDs .Trash; do
+	mkdir -p "$HOME/$d"
+done
+mkdir -p "$DESK"
+
+if [ -S "${RUNTIME}/${SOCK}" ]; then
+	echo "a session socket already exists at ${RUNTIME}/${SOCK}" >&2
+	echo "stop that session, or choose another with AGORA_SESSION_SOCKET=name" >&2
+	exit 1
+fi
+rm -f "${RUNTIME}/${SOCK}.lock"
+
+cleanup() {
+	for pid in "${SPID:-}" "${WPID:-}" "${DOCKPID:-}" "${SYSTEMUIPID:-}"; do
+		[ -n "${pid:-}" ] && kill "$pid" 2>/dev/null
+	done
+	rm -f "${RUNTIME}/${SOCK}" "${RUNTIME}/${SOCK}.lock"
+}
+trap cleanup EXIT INT TERM
+
+# 1. THE COMPOSITOR. `--input host` routes the pointer and keyboard that THIS WINDOW is given, so the session can be
+#    left open without taking the host desktop's input away.
+"$SERVER_BIN" --backend x11 --input host --socket "$SOCK" --frames 0 --width "$W" --height "$H" "${DPI[@]}" \
+	>/tmp/agora-session-server.log 2>&1 &
+SPID=$!
+for _ in $(seq 1 60); do
+	[ -S "${RUNTIME}/${SOCK}" ] && break
+	sleep 0.1
+done
+if [ ! -S "${RUNTIME}/${SOCK}" ]; then
+	echo "FAIL: the window server never came up; its log follows" >&2
+	cat /tmp/agora-session-server.log >&2
+	exit 1
+fi
+
+# 2. WORKSPACE FIRST. The compositor gives the keyboard to the first surface that maps, and the menu bar belongs to the
+#    active application, so the desktop must own the bar. `--seconds` is the door that keeps the ordinary run loop
+#    going; without it the desktop leaves the session after three.
+GETINFO=()
+[ -n "${AGORA_SESSION_GET_INFO:-}" ] && GETINFO=(--get-info "${AGORA_SESSION_GET_INFO}")
+AGORA_DESKTOP="$DESK" WAYLAND_DISPLAY="$SOCK" "$WORKSPACE_BIN" --seconds 1000000000 "${GETINFO[@]}" \
+	>/dev/null 2>/tmp/agora-session-workspace.log &
+WPID=$!
+sleep 1.5
+
+# 3. THE DOCK, THEN THE SYSTEM UI. Both are optional to the scene and neither is optional to the design: a session
+#    without a Dock has no Trash and no running applications, and one without the System UI has a system menu that a
+#    click cannot open. They are started when installed and reported when not.
+if [ -x "$DOCK_BIN" ]; then
+	WAYLAND_DISPLAY="$SOCK" "$DOCK_BIN" >/tmp/agora-session-dock.log 2>&1 &
+	DOCKPID=$!
+	sleep 0.5
+	if ! kill -0 "$DOCKPID" 2>/dev/null; then
+		echo "FAIL: the dock did not start; its log follows" >&2
+		cat /tmp/agora-session-dock.log >&2
+		exit 1
+	fi
+else
+	echo "  (no Dock.app installed — the session has no tiles and no Trash)" >&2
+fi
+if [ -x "$SYSTEMUI_BIN" ]; then
+	WAYLAND_DISPLAY="$SOCK" "$SYSTEMUI_BIN" >/tmp/agora-session-systemui.log 2>&1 &
+	SYSTEMUIPID=$!
+	sleep 0.5
+else
+	echo "  (no SystemUI.app installed — the system menu will not open)" >&2
+fi
+
+# 4. **THE DESKTOP'S PICTURE CAME UP WITH THE DOCK.** The wallpaper is a window at `kCGDesktopWindowLevel` and it is the
+#    Dock's to draw (`WORKSPACE-PLAN.md` §3), so the session starts no wallpaper client at all: `AGORA_WALLPAPER` names
+#    the image — inherited from the caller's environment — and the amber ramp of `window-server/ARGENTUM.md` stands in
+#    when there is none, which is what an installation gets by default: art the tree can ship.
+OUTPUT_SCALE=$(sed -n 's/.*(scale \([0-9.]*\).*/\1/p' /tmp/agora-session-server.log | head -1)
+sleep 1
+
+echo "server=$SPID  workspace=$WPID${DOCKPID:+  dock=$DOCKPID}${SYSTEMUIPID:+  systemui=$SYSTEMUIPID}"
+SCALE_NOTE="output scale ${OUTPUT_SCALE:-1}"
+[ -n "${AGORA_UI_SCALE:-}" ] && SCALE_NOTE="${SCALE_NOTE} = panel x ${AGORA_UI_SCALE} UI"
+echo "  window server: ${W}x${H} on DISPLAY $DISPLAY (${SCALE_NOTE})"
+echo "  Wayland socket: ${RUNTIME}/${SOCK}"
+echo "  desktop: ${DESK}"
+echo "  wallpaper: ${AGORA_WALLPAPER:-the ramp} (drawn by the Dock)"
+echo "  menu bar: Workspace"
+echo "  logs: /tmp/agora-session-{server,workspace,dock,systemui}.log"
+echo "Ctrl-C stops the session."
+
+# 5. PUT THE HOST WINDOW IN FRONT. A buried nested window receives no clicks at all; EWMH's activate request is what a
+#    taskbar sends, and the raise is the fallback. Optional and best-effort: a host without python3 or xwininfo loses the
+#    raise, not the session.
+python3 - <<'PY' 2>/dev/null || true
+import ctypes, re, subprocess, time
+
+class XClientMessageEvent(ctypes.Structure):
+    _fields_ = [("type", ctypes.c_int), ("serial", ctypes.c_ulong), ("send_event", ctypes.c_int),
+                ("display", ctypes.c_void_p), ("window", ctypes.c_ulong), ("message_type", ctypes.c_ulong),
+                ("format", ctypes.c_int), ("l", ctypes.c_long * 5), ("pad", ctypes.c_char * 96)]
+
+x11 = ctypes.CDLL("libX11.so.6")
+x11.XOpenDisplay.restype = ctypes.c_void_p; x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
+x11.XDefaultRootWindow.restype = ctypes.c_ulong; x11.XDefaultRootWindow.argtypes = [ctypes.c_void_p]
+x11.XInternAtom.restype = ctypes.c_ulong; x11.XInternAtom.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int]
+x11.XSendEvent.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_long,
+                           ctypes.POINTER(XClientMessageEvent)]
+x11.XRaiseWindow.argtypes = [ctypes.c_void_p, ctypes.c_ulong]
+x11.XFlush.argtypes = [ctypes.c_void_p]
+d = x11.XOpenDisplay(None)
+if d is None:
+    raise SystemExit(0)
+root = x11.XDefaultRootWindow(d)
+
+tree = subprocess.run(["xwininfo", "-root", "-tree"], capture_output=True, text=True).stdout
+client = frame = None
+for line in tree.splitlines():
+    if '"Agora Window Server"' not in line:
+        continue
+    match = re.match(r'\s*(0x[0-9a-f]+)', line)
+    if not match:
+        continue
+    if "mutter-x11-frames" in line or "frame" in line:
+        frame = int(match.group(1), 16)
+    elif re.search(r'\(\)\s+\d+x\d+', line):
+        client = int(match.group(1), 16)
+if client is None:
+    print("  (no Agora window on the host display to raise)")
+    raise SystemExit(0)
+
+A_ACTIVE = x11.XInternAtom(d, b"_NET_ACTIVE_WINDOW", 0)
+A_STATE = x11.XInternAtom(d, b"_NET_WM_STATE", 0)
+A_ABOVE = x11.XInternAtom(d, b"_NET_WM_STATE_ABOVE", 0)
+
+def send(message_type, l0, l1, l2):
+    event = XClientMessageEvent()
+    ctypes.memset(ctypes.byref(event), 0, ctypes.sizeof(event))
+    event.type = 33; event.send_event = 1; event.display = d; event.window = client
+    event.message_type = message_type; event.format = 32
+    event.l[0] = l0; event.l[1] = l1; event.l[2] = l2; event.l[3] = 1
+    x11.XSendEvent(d, root, 0, 0x180000, ctypes.byref(event)); x11.XFlush(d); time.sleep(0.25)
+
+send(A_ACTIVE, 1, 0, 0)
+send(A_STATE, 1, A_ABOVE, 0)
+if frame is not None:
+    x11.XRaiseWindow(d, frame)
+x11.XRaiseWindow(d, client)
+x11.XFlush(d)
+print(f"  host window {hex(client)} activated and pinned above")
+PY
+
+wait "$SPID"

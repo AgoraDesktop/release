@@ -78,6 +78,11 @@ make clean           # remove the per-component build trees
 
 The build is DESTDIR-based: `make` needs no root, and `make install` writes only under `$(DESTDIR)`.
 
+**AND IT INSTALLS THE SESSION'S LAUNCHER.** `scripts/agora-session` lands in `$(PREFIX)/bin`: it starts the scene a
+person installed — the window server nested on an X11 desktop, Workspace, the Dock and the System UI — and it finds its
+prefix by being installed in it, so the installed tree can move. That launcher is the release's own and not a
+component's, because it is the one file that names its siblings. `make deb` packages it with the rest.
+
 **The stage is the image root, not just the prefix.** Components install under `$(PREFIX)`, and one
 thing does not: the installation's directory set. A complete installation carries the Mac OS X
 directories the stack names — `/Applications`, `/Library`, `/System`, `/Users`, `/Volumes`, and the
