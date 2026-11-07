@@ -67,11 +67,20 @@
 [submodule "libagora-webview"]
 	path = libagora-webview
 	url = https://github.com/AgoraDesktop/libagora-webview.git
-	branch = main[submodule "forge"]
+	branch = main
+[submodule "forge"]
 	path = forge
 	url = https://github.com/AgoraDesktop/forge.git
 	branch = main
 [submodule "libagora-audio"]
 	path = libagora-audio
 	url = https://github.com/AgoraDesktop/libagora-audio.git
+	branch = main
+[submodule "dock"]
+	path = dock
+	url = https://github.com/AgoraDesktop/dock.git
+	branch = main
+[submodule "systemui"]
+	path = systemui
+	url = https://github.com/AgoraDesktop/systemui.git
 	branch = main

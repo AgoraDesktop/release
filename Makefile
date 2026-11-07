@@ -1,6 +1,8 @@
 # Makefile — build, install and package the desktop this release pins.
 #
 #   make                 build every component into a staged prefix
+#   make COMPONENTS=components-nested.conf install
+#                        the same, for a session nested on an X11 desktop
 #   make install         copy the staged prefix into $(DESTDIR)$(PREFIX)
 #   make deb             build Debian packages with dpkg-buildpackage
 #   make clean           remove the per-component build trees
@@ -13,6 +15,7 @@
 # Nothing here names a component version. The versions are the submodule pins;
 # which components exist and in what order is `components.conf`.
 
+COMPONENTS ?= components.conf
 PREFIX    ?= /usr/local
 DESTDIR   ?=
 BUILD_DIR ?= build
@@ -23,7 +26,7 @@ DRIVER    ?= scripts/build.sh
 # out tag. Set it to override, e.g. `make VERSION=0.0.1 deb`.
 VERSION   ?=
 
-ARGS := --prefix "$(PREFIX)" --destdir "$(STAGE)" --build-root "$(BUILD_DIR)"
+ARGS := --prefix "$(PREFIX)" --destdir "$(STAGE)" --build-root "$(BUILD_DIR)" --components "$(COMPONENTS)"
 ifneq ($(strip $(JOBS)),)
 ARGS += --jobs $(JOBS)
 endif
